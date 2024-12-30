@@ -1,0 +1,98 @@
+---
+title: "Medium"
+author: "Prateek Kumar"
+date: "2024-12-27"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(torch)
+library(magrittr)
+```
+
+```{r}
+spam_url <- "https://hastie.su.domains/ElemStatLearn/datasets/spam.data"
+spam_data <- read.table(spam_url, header = FALSE)
+x_data <- as.matrix(spam_data[, -ncol(spam_data)])
+y_data <- as.numeric(spam_data[, ncol(spam_data)]) + 1
+```
+
+
+```{r}
+x_tensor <- torch_tensor(x_data, dtype = torch_float())
+y_tensor <- torch_tensor(y_data, dtype = torch_long())
+```
+
+```{r}
+spam_dataset <- dataset(
+  name = "spam_dataset",
+  
+  initialize = function(x, y) {
+    self$x <- x
+    self$y <- y
+  },
+  
+  .getbatch = function(index) {
+    list(
+      x = self$x[index, ],
+      y = self$y[index]
+    )
+  },
+  
+  .length = function() {
+    self$y$size(1)
+  }
+)
+```
+
+```{r}
+dataset <- spam_dataset(x=x_tensor, y=y_tensor)
+batch_size <- 32
+dataloader <- dataloader(dataset, batch_size = batch_size, shuffle = TRUE)
+```
+
+```{r}
+net <- nn_module(
+  "SpamNet",
+  initialize = function() {
+    self$fc1 <- nn_linear(ncol(x_data), 64)
+    self$fc2 <- nn_linear(64, 2)  # Binary classification
+  },
+  forward = function(x) {
+    x %>%
+      self$fc1() %>%
+      nnf_relu() %>%
+      self$fc2() %>%
+      nnf_log_softmax(dim = 1)
+  }
+)
+
+model <- net()
+optimizer <- optim_sgd(model$parameters, lr = 0.01)
+```
+
+
+```{r}
+num_epochs <- 10
+for (epoch in 1:num_epochs) {
+  losses <- c()
+  
+  coro::loop(for (batch in dataloader) {
+    optimizer$zero_grad()
+    output <- model(batch$x)
+    loss <- nnf_nll_loss(output, batch$y)
+    loss$backward()
+    optimizer$step()
+    losses <- c(losses, loss$item())
+  })
+  
+  cat(sprintf("Epoch %d: Loss = %.4f\n", epoch, mean(losses)))
+}
+```
+

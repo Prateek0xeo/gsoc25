@@ -1,0 +1,40 @@
+---
+title: "R_statiscal_project"
+author: "Prateek Kumar"
+date: "2024-12-26"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(torch)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+tensor <- torch_randn(c(10, 10))
+
+tensor_matrix <- as.array(tensor)
+
+library(ggplot2)
+library(reshape2)
+
+tensor_melt <- melt(tensor_matrix)
+colnames(tensor_melt) <- c("X", "Y", "Value")
+
+ggplot(tensor_melt, aes(x = X, y = Y, fill = Value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
+  theme_minimal() +
+  labs(title = "Heatmap of Torch Tensor", x = "X-axis", y = "Y-axis")
+```
+
+
